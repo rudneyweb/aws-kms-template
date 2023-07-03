@@ -9,7 +9,7 @@
       "Type": "String",
       "AllowedValues": [
         "Homolog",
-        "Prod",
+        "Prod"
       ]
     },
     "Name": {
