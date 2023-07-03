@@ -1,0 +1,88 @@
+{
+  "AWSTemplateFormatVersion": "2010-09-09",
+  "Description": "CloudFormation Stack to create KMS and enable key rotation by default.",
+  "Parameters": {
+    "Description": {
+      "Type": "String"
+    },
+    "Environment": {
+      "Type": "String",
+      "AllowedValues": [
+        "Homolog",
+        "Prod",
+      ]
+    },
+    "Name": {
+      "Type": "String",
+      "MaxLength": 30,
+      "AllowedPattern": "^[0-9a-z]+-[a-z]{2}(-[0-9a-z]+)+$",
+      "ConstraintDescription": "Must be supplied with at most 30 characters and follow the pattern: example- CloudWatch-Encrypt"
+    }
+  },
+  "Resources": {
+    "MyKMSKey": {
+      "Type": "AWS::KMS::Key",
+      "Properties": {
+        "Description": "${Description}",
+        "Enabled": true,
+        "EnableKeyRotation": true,
+        "KeyPolicy": {
+          "Id": {
+            "Fn::Sub": "${Name}-${Environment}"
+          },
+          "Version": "2012-10-17",
+          "Statement": [
+            {
+              "Sid": "Allow administration of the key",
+              "Effect": "Allow",
+              "Principal": {
+                "AWS": {
+                  "Fn::Sub": "arn:aws:iam::${AWS::AccountId}:root"
+                }
+              },
+              "Action": [
+                "kms:*"
+              ],
+              "Resource": "*"
+            },
+            {
+              "Sid": "Allow cloudwatch metric to use this key",
+              "Effect": "Allow",
+              "Principal": {
+                "Service": "cloudwatch.amazonaws.com"
+              },
+              "Action": [
+                "kms:Decrypt",
+                "kms:GenerateDataKey*"
+              ],
+              "Resource": "*"
+            }
+          ]
+        },
+        "KeyUsage": "ENCRYPT_DECRYPT",
+        "PendingWindowInDays": 7,
+        "Tags": [
+          {
+            "Key": "Environment",
+            "Value": "Environment"
+          },
+          {
+            "Key": "Name",
+            "Value": "Name"
+          }
+        ]
+      }
+    },
+    "MyKMSKeyAlias": {
+      "Type": "AWS::KMS::Alias",
+      "Properties": {
+        "AliasName": {
+          "Fn::Sub": "alias/${Name}"
+        },
+        "TargetKeyId": {
+          "Ref": "MyKMSKey"
+        }
+      }
+    }
+  }
+}
